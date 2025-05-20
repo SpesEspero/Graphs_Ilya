@@ -1,0 +1,1 @@
+console.log('Graph data:', JSON.stringify(graphStore.currentGraph?.graph?.nodes, null, 2))
