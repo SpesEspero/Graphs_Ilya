@@ -186,37 +186,51 @@ const NodeCreator: React.FC = observer(() => {
                   <List.Item.Meta
                     title={`${index + 1}. ${node.name}`}
                     description={
-                      node.connectedNodes.length > 0 && (
-                        <div style={{ paddingLeft: 16 }}>
-                          {node.connectedNodes.map(
-                            (connectedNodeName, cIdx) => (
-                              <div
-                                key={cIdx}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  marginBottom: 4,
-                                }}
-                              >
-                                <Text>{connectedNodeName}</Text>
-                                <Button
-                                  size="small"
-                                  type="text"
-                                  danger
-                                  htmlType="button"
-                                  icon={<DeleteOutlined />}
-                                  onClick={() =>
-                                    handleRemoveConnection(
+                      <div style={{ paddingLeft: 16 }}>
+                        {node.connectedNodes.length > 0 ? (
+                          <div>
+                            <div style={{ marginTop: 8 }}>
+                              <Text strong>Соединения:</Text>
+                            </div>
+                            {node.connectedNodes.map(
+                              (connectedNodeName, cIdx) => (
+                                <div
+                                  key={cIdx}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  <Text>
+                                    {node.name} {"--"}
+                                    {graphStore.getEdgeWeight(
                                       node.name,
                                       connectedNodeName
-                                    )
-                                  }
-                                />
-                              </div>
-                            )
-                          )}
-                        </div>
-                      )
+                                    )}
+                                    {"-->"} {connectedNodeName}
+                                  </Text>
+                                  <Button
+                                    size="small"
+                                    type="text"
+                                    danger
+                                    htmlType="button"
+                                    icon={<DeleteOutlined />}
+                                    onClick={() =>
+                                      handleRemoveConnection(
+                                        node.name,
+                                        connectedNodeName
+                                      )
+                                    }
+                                  />
+                                </div>
+                              )
+                            )}
+                          </div>
+                        ) : (
+                          <Text type="secondary">Нет соединений</Text>
+                        )}
+                      </div>
                     }
                   />
                 </List.Item>
@@ -226,107 +240,115 @@ const NodeCreator: React.FC = observer(() => {
         </div>
 
         {graphStore.nodes.length > 1 && (
-          <div>
-            <Title level={5}>Добавить соединение:</Title>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-            >
-              <div>
-                <div style={{ marginBottom: "8px" }}>
-                  <strong>Узел A (источник):</strong>
-                </div>
-                <Space wrap>
-                  {graphStore.nodes.map((node, idx) => (
-                    <Button
-                      key={idx}
-                      size="middle"
-                      type={
-                        selectedSourceNode === node.name ? "primary" : "default"
-                      }
-                      htmlType="button"
-                      onClick={() => {
-                        setSelectedSourceNode(node.name);
-                      }}
-                    >
-                      {node.name}
-                    </Button>
-                  ))}
-                </Space>
-              </div>
-
-              {selectedSourceNode && (
+          <>
+            <div>
+              <Title level={5}>Добавить соединение:</Title>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}
+              >
                 <div>
                   <div style={{ marginBottom: "8px" }}>
-                    <strong>Узел B (назначение):</strong>
+                    <strong>Узел A (источник):</strong>
                   </div>
                   <Space wrap>
-                    {graphStore.nodes
-                      .filter((node) => node.name !== selectedSourceNode)
-                      .map((node, idx) => (
-                        <Button
-                          key={idx}
-                          size="middle"
-                          type={
-                            selectedTargetNode === node.name
-                              ? "primary"
-                              : "default"
-                          }
-                          htmlType="button"
-                          onClick={() => {
-                            setSelectedTargetNode(node.name);
-                          }}
-                        >
-                          {node.name}
-                        </Button>
-                      ))}
+                    {graphStore.nodes.map((node, idx) => (
+                      <Button
+                        key={idx}
+                        size="middle"
+                        type={
+                          selectedSourceNode === node.name
+                            ? "primary"
+                            : "default"
+                        }
+                        htmlType="button"
+                        onClick={() => {
+                          setSelectedSourceNode(node.name);
+                        }}
+                      >
+                        {node.name}
+                      </Button>
+                    ))}
                   </Space>
                 </div>
-              )}
 
-              {selectedSourceNode && selectedTargetNode && (
-                <div>
-                  <div style={{ marginBottom: "8px" }}>
-                    <strong>Вес соединения:</strong>
+                {selectedSourceNode && (
+                  <div>
+                    <div style={{ marginBottom: "8px" }}>
+                      <strong>Узел B (назначение):</strong>
+                    </div>
+                    <Space wrap>
+                      {graphStore.nodes
+                        .filter((node) => node.name !== selectedSourceNode)
+                        .map((node, idx) => (
+                          <Button
+                            key={idx}
+                            size="middle"
+                            type={
+                              selectedTargetNode === node.name
+                                ? "primary"
+                                : "default"
+                            }
+                            htmlType="button"
+                            onClick={() => {
+                              setSelectedTargetNode(node.name);
+                            }}
+                          >
+                            {node.name}
+                          </Button>
+                        ))}
+                    </Space>
                   </div>
-                  <InputNumber
-                    placeholder="Вес"
-                    min={1}
-                    value={connectionWeight}
-                    onChange={(value) => setConnectionWeight(value ?? 1)}
-                    style={{ width: "100px" }}
-                  />
-                </div>
-              )}
+                )}
 
-              {selectedSourceNode && selectedTargetNode && (
-                <Button
-                  type="primary"
-                  htmlType="button"
-                  onClick={() => {
-                    const targetNode = selectedTargetNode;
-                    const weight = connectionWeight;
+                {selectedSourceNode && selectedTargetNode && (
+                  <div>
+                    <div style={{ marginBottom: "8px" }}>
+                      <strong>Вес соединения:</strong>
+                    </div>
+                    <InputNumber
+                      placeholder="Вес"
+                      min={1}
+                      value={connectionWeight}
+                      onChange={(value) => setConnectionWeight(value ?? 1)}
+                      style={{ width: "100px" }}
+                    />
+                  </div>
+                )}
 
-                    if (!selectedSourceNode || !targetNode) {
-                      message.error("Выберите оба узла");
-                      return;
-                    }
+                {selectedSourceNode && selectedTargetNode && (
+                  <Button
+                    type="primary"
+                    htmlType="button"
+                    onClick={() => {
+                      const targetNode = selectedTargetNode;
+                      const weight = connectionWeight;
 
-                    if (!weight || weight < 1) {
-                      message.error("Введите вес (минимум 1)");
-                      return;
-                    }
+                      if (!selectedSourceNode || !targetNode) {
+                        message.error("Выберите оба узла");
+                        return;
+                      }
 
-                    handleAddConnection({
-                      targetNode,
-                      weight,
-                    });
-                  }}
-                >
-                  Добавить/Обновить соединение
-                </Button>
-              )}
+                      if (!weight || weight < 1) {
+                        message.error("Введите вес (минимум 1)");
+                        return;
+                      }
+
+                      handleAddConnection({
+                        targetNode,
+                        weight,
+                      });
+                    }}
+                  >
+                    Добавить/Обновить соединение
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </Card>
     </div>

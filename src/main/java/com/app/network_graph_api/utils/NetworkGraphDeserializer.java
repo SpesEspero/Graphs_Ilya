@@ -3,6 +3,7 @@ package com.app.network_graph_api.utils;
 import com.app.network_graph_api.model.api.NetworkGraph;
 import com.app.network_graph_api.model.api.NetworkGraphEdge;
 import com.app.network_graph_api.model.api.NetworkGraphNode;
+import com.app.network_graph_api.model.api.NetworkNode;
 import com.google.gson.*;
 
 import java.lang.reflect.Type;
@@ -15,11 +16,35 @@ import java.util.Map;
 public class NetworkGraphDeserializer implements JsonDeserializer<NetworkGraph> {
 
     @Override
-    public NetworkGraph deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
+    public NetworkGraph deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext context)
+            throws JsonParseException {
+        JsonObject jsonObject = jsonElement.getAsJsonObject();
+        NetworkGraph graph = new NetworkGraph();
+
+        // Десериализуем старый формат
+        if (jsonObject.has("nodes")) {
+            Map<NetworkGraphNode, List<NetworkGraphEdge>> nodeMap = deserializeOldFormat(jsonObject, context);
+            graph.setNodes(nodeMap);
+        }
+
+        // Десериализуем новый формат (если есть)
+        if (jsonObject.has("networkNodes")) {
+            JsonArray networkNodesArray = jsonObject.getAsJsonArray("networkNodes");
+            Type networkNodeListType = new com.google.gson.reflect.TypeToken<List<NetworkNode>>() {
+            }.getType();
+            List<NetworkNode> networkNodes = context.deserialize(networkNodesArray, networkNodeListType);
+            graph.setNetworkNodes(networkNodes);
+        }
+
+        return graph;
+    }
+
+    private Map<NetworkGraphNode, List<NetworkGraphEdge>> deserializeOldFormat(JsonObject jsonObject,
+            JsonDeserializationContext context) {
         Map<NetworkGraphNode, List<NetworkGraphEdge>> nodeMap = new HashMap<>();
 
         List<NetworkGraphNode> nodes = new ArrayList<>();
-        JsonArray nodesElement = jsonElement.getAsJsonObject().get("nodes").getAsJsonArray();
+        JsonArray nodesElement = jsonObject.get("nodes").getAsJsonArray();
         for (JsonElement nodeElement : nodesElement) {
             String name = nodeElement.getAsJsonObject().get("name").getAsString();
             BigDecimal value = nodeElement.getAsJsonObject().get("value").getAsBigDecimal();
@@ -58,8 +83,6 @@ public class NetworkGraphDeserializer implements JsonDeserializer<NetworkGraph> 
             nodeMap.put(thisNode, edges);
         }
 
-        NetworkGraph graph = new NetworkGraph();
-        graph.setNodes(nodeMap);
-        return graph;
+        return nodeMap;
     }
 }

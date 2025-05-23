@@ -3,6 +3,7 @@ package com.app.network_graph_api.utils;
 import com.app.network_graph_api.model.api.NetworkGraph;
 import com.app.network_graph_api.model.api.NetworkGraphEdge;
 import com.app.network_graph_api.model.api.NetworkGraphNode;
+import com.app.network_graph_api.model.api.NetworkNode;
 import com.google.gson.*;
 
 import java.lang.reflect.Type;
@@ -11,9 +12,17 @@ import java.util.List;
 public class NetworkGraphSerializer implements JsonSerializer<NetworkGraph> {
 
     @Override
-    public JsonElement serialize(NetworkGraph graph, Type type, JsonSerializationContext jsonSerializationContext) {
+    public JsonElement serialize(NetworkGraph graph, Type type, JsonSerializationContext context) {
         JsonObject jsonObject = new JsonObject();
+
+        // Сериализуем старый формат для обратной совместимости
         jsonObject.add("nodes", graphNodeListElement(graph));
+
+        // Сериализуем новый формат networkNodes если он существует
+        if (graph.getNetworkNodes() != null) {
+            jsonObject.add("networkNodes", context.serialize(graph.getNetworkNodes()));
+        }
+
         return jsonObject;
     }
 
@@ -43,7 +52,7 @@ public class NetworkGraphSerializer implements JsonSerializer<NetworkGraph> {
 
     private JsonElement graphEdgeElement(NetworkGraphEdge edge) {
         JsonObject edgeJson = new JsonObject();
-        edgeJson.addProperty("to", edge.getTo().getName());
+        edgeJson.addProperty("to", edge.getTargetNodeName());
         edgeJson.addProperty("weight", edge.getWeight());
         return edgeJson;
     }

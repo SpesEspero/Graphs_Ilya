@@ -6,6 +6,7 @@ import type {
   GraphPathResponse,
   NetworkNode,
   NetworkGraph,
+  NetworkGraphEdge,
 } from "../api/graph";
 import authStore from "./authStore";
 
@@ -84,7 +85,7 @@ class GraphStore {
   addNode(name: string) {
     const newNode: NetworkNode = {
       name,
-      parameters: [0], // Default parameters
+      parameters: [], // Empty parameters array for new nodes
       connectedNodes: [],
     };
     // Create a new array to ensure MobX detects the change
@@ -117,17 +118,21 @@ class GraphStore {
     const sourceNode = updatedNodes.find((node) => node.name === sourceName);
     if (!sourceNode) return;
 
-    // Store the edge weight in our map instead of node parameters
+    // Store the edge weight in our map
     this.setEdgeWeight(sourceName, targetName, weight);
 
     // Check if connection already exists
     const existingConnIdx = sourceNode.connectedNodes.indexOf(targetName);
 
     if (existingConnIdx >= 0) {
-      // Connection already exists, we don't need to add it again
+      // Update the parameter at the same index as the connection
+      if (!sourceNode.parameters) sourceNode.parameters = [];
+      sourceNode.parameters[existingConnIdx] = weight;
     } else {
-      // Add new connection
+      // Add new connection and parameter
       sourceNode.connectedNodes.push(targetName);
+      if (!sourceNode.parameters) sourceNode.parameters = [];
+      sourceNode.parameters.push(weight);
     }
 
     // Update the nodes array with our modified copy
@@ -140,9 +145,21 @@ class GraphStore {
     const sourceNode = updatedNodes.find((node) => node.name === sourceName);
     if (!sourceNode) return;
 
+    // Find the index of the connection
+    const connIndex = sourceNode.connectedNodes.indexOf(targetName);
+    if (connIndex === -1) return;
+
+    // Remove the connection
     sourceNode.connectedNodes = sourceNode.connectedNodes.filter(
-      (conn) => conn !== targetName
+      (_, idx) => idx !== connIndex
     );
+
+    // Remove the corresponding parameter
+    if (sourceNode.parameters) {
+      sourceNode.parameters = sourceNode.parameters.filter(
+        (_, idx) => idx !== connIndex
+      );
+    }
 
     // Remove the edge weight
     const key = `${sourceName}-${targetName}`;
@@ -190,8 +207,28 @@ class GraphStore {
         throw new Error("Invalid graph data received from server");
       }
 
-      // Transform backend data to our node format
-      if (response.graph.nodes && Array.isArray(response.graph.nodes)) {
+      // Check if the response is in the new format with networkNodes
+      if (
+        response.graph.networkNodes &&
+        Array.isArray(response.graph.networkNodes)
+      ) {
+        // Simply use the nodes directly
+        this.nodes = response.graph.networkNodes.map((node) => ({
+          name: node.name,
+          parameters: [...node.parameters],
+          connectedNodes: [...node.connectedNodes],
+        }));
+
+        // Populate the edge weights map for visualization
+        this.nodes.forEach((node) => {
+          node.connectedNodes.forEach((targetNode, index) => {
+            const weight = node.parameters[index] || 0;
+            this.setEdgeWeight(node.name, targetNode, weight);
+          });
+        });
+      }
+      // Fallback for old format (can be removed once backend is updated)
+      else if (response.graph.nodes && Array.isArray(response.graph.nodes)) {
         // Create a temporary map to build nodes
         const nodeMap: Record<string, NetworkNode> = {};
 
@@ -200,7 +237,7 @@ class GraphStore {
           if (node && node.name) {
             nodeMap[node.name] = {
               name: node.name,
-              parameters: [node.value || 0],
+              parameters: [],
               connectedNodes: [],
             };
           }
@@ -212,7 +249,11 @@ class GraphStore {
             const sourceNode = nodeMap[node.name];
 
             if (sourceNode) {
-              node.edges.forEach((edge: any) => {
+              // Create a list to store parameters and connectedNodes in the same order
+              const connectedNodes: string[] = [];
+              const parameters: number[] = [];
+
+              node.edges.forEach((edge: NetworkGraphEdge) => {
                 if (edge && edge.to) {
                   // Get target node name (handle both string and object formats)
                   const targetName =
@@ -224,15 +265,20 @@ class GraphStore {
 
                   if (targetName && nodeMap[targetName]) {
                     // Add connection
-                    if (!sourceNode.connectedNodes.includes(targetName)) {
-                      sourceNode.connectedNodes.push(targetName);
-                    }
+                    connectedNodes.push(targetName);
 
-                    // Store edge weight
+                    // Add parameter (weight)
+                    parameters.push(edge.weight || 0);
+
+                    // Store edge weight in our edge weights map
                     this.setEdgeWeight(node.name, targetName, edge.weight || 0);
                   }
                 }
               });
+
+              // Update the node with the correctly ordered parameters and connectedNodes
+              sourceNode.connectedNodes = connectedNodes;
+              sourceNode.parameters = parameters;
             }
           }
         });
@@ -262,17 +308,13 @@ class GraphStore {
         // Create a deep copy of the node
         const nodeCopy = {
           name: node.name,
+          // Keep connected nodes in the same order as parameters
           connectedNodes: [...node.connectedNodes],
-          // Use edge weights as parameters for the node
+          // For each connected node, get the edge weight
           parameters: node.connectedNodes.map((targetNode) =>
             this.getEdgeWeight(node.name, targetNode)
           ),
         };
-
-        // If parameters is empty (no outgoing edges), add a default value
-        if (nodeCopy.parameters.length === 0) {
-          nodeCopy.parameters = [1]; // Default parameter
-        }
 
         return nodeCopy;
       });

@@ -22,7 +22,8 @@ export interface NetworkGraphEdge {
 }
 
 export interface NetworkGraph {
-  nodes: NetworkGraphNode[];
+  nodes?: NetworkGraphNode[];
+  networkNodes?: NetworkNode[];
 }
 
 export interface GraphResponse {
