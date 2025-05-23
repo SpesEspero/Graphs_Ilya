@@ -24,6 +24,36 @@ const ViewGraphPage: React.FC = observer(() => {
     };
   }, [graphId]);
 
+  // Add debugging information (can be removed in production)
+  useEffect(() => {
+    if (graphStore.currentGraph) {
+      console.log("Graph data loaded:", graphStore.currentGraph);
+      console.log("Nodes array:", graphStore.nodes);
+
+      // Проверяем новый формат данных
+      if (
+        graphStore.currentGraph.graph &&
+        graphStore.currentGraph.graph.networkNodes
+      ) {
+        console.log(
+          "NetworkNodes (новый формат):",
+          graphStore.currentGraph.graph.networkNodes
+        );
+      }
+
+      // Проверяем старый формат данных
+      if (
+        graphStore.currentGraph.graph &&
+        graphStore.currentGraph.graph.nodes
+      ) {
+        console.log(
+          "Nodes (старый формат):",
+          graphStore.currentGraph.graph.nodes
+        );
+      }
+    }
+  }, [graphStore.currentGraph, graphStore.nodes]);
+
   if (graphStore.isLoading) {
     return (
       <div

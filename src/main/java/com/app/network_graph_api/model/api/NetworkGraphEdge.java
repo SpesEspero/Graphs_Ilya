@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 public class NetworkGraphEdge {
     private BigDecimal weight;
-    private NetworkGraphNode to;
+    private Object to;
 
     public BigDecimal getWeight() {
         return weight;
@@ -14,11 +14,25 @@ public class NetworkGraphEdge {
         this.weight = weight;
     }
 
-    public NetworkGraphNode getTo() {
+    public Object getTo() {
         return to;
     }
 
-    public void setTo(NetworkGraphNode to) {
+    public void setTo(Object to) {
         this.to = to;
+    }
+
+    /**
+     * Возвращает имя целевого узла
+     * 
+     * @return Имя узла
+     */
+    public String getTargetNodeName() {
+        if (to instanceof String) {
+            return (String) to;
+        } else if (to instanceof NetworkGraphNode) {
+            return ((NetworkGraphNode) to).getName();
+        }
+        return null;
     }
 }

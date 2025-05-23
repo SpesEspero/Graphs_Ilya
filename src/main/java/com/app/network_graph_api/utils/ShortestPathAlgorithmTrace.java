@@ -25,7 +25,7 @@ public class ShortestPathAlgorithmTrace implements ShortestPathAlgorithmHandler 
     }
 
     private void trace(NetworkGraphNode node, BigDecimal weight, NetworkGraph graph,
-                       Map<List<NetworkGraphNode>, BigDecimal> paths, Map<List<NetworkGraphNode>, BigDecimal> result) {
+            Map<List<NetworkGraphNode>, BigDecimal> paths, Map<List<NetworkGraphNode>, BigDecimal> result) {
         Map<List<NetworkGraphNode>, BigDecimal> newPaths = new HashMap<>();
         if (paths == null) {
             List<NetworkGraphNode> newPath = new ArrayList<>();
@@ -47,11 +47,18 @@ public class ShortestPathAlgorithmTrace implements ShortestPathAlgorithmHandler 
         List<NetworkGraphEdge> edges = graph.getNodes().get(node);
         for (NetworkGraphEdge edge : edges) {
             for (List<NetworkGraphNode> path : newPaths.keySet()) {
-                if (path.contains(edge.getTo())) {
+                NetworkGraphNode targetNode = null;
+                String targetName = edge.getTargetNodeName();
+
+                if (targetName != null) {
+                    targetNode = NetworkGraphUtils.findNodeByName(graph, targetName);
+                }
+
+                if (targetNode == null || path.contains(targetNode)) {
                     continue;
                 }
 
-                trace(edge.getTo(), edge.getWeight(), graph, newPaths, result);
+                trace(targetNode, edge.getWeight(), graph, newPaths, result);
             }
         }
 
